@@ -1,0 +1,29 @@
+name: madoula_project
+description: "Application mobile de détection de maladies agricoles - IAI Cameroun 2025"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  image_picker: ^1.0.4       # caméra et galerie photo
+  flutter_tts: ^4.2.5        # synthèse vocale (lire à voix haute)
+  sqflite: ^2.3.0            # base de données SQLite locale
+  path_provider: ^2.1.1      # accès aux fichiers locaux
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/maladies_madoula.json  # base de données des maladies

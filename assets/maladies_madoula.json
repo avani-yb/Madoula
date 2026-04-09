@@ -1,0 +1,132 @@
+{
+  "version": "1.0",
+  "auteur": "Nzana Christophe — IAI Cameroun 2025",
+  "description": "Base de données des maladies agricoles pour l'app Madoula. Données de test — à remplacer par les vraies données.",
+  "maladies": [
+    {
+      "id": 1,
+      "classe_modele": "manioc_mosaic",
+      "plante": "Manioc",
+      "nom_fr": "Mosaïque du manioc",
+      "nom_ewondo": "Nkul maniok",
+      "nom_fulfulde": "Cukuli kassaaba",
+      "description_fr": "Maladie virale très répandue en Afrique centrale. Elle provoque un jaunissement en mosaïque sur les feuilles et réduit fortement le rendement.",
+      "symptomes": [
+        "Feuilles avec taches jaunes et vertes en mosaïque",
+        "Déformation et réduction de la taille des feuilles",
+        "Tiges fragiles",
+        "Racines moins développées"
+      ],
+      "traitements_locaux": [
+        "Arracher et brûler les plants infectés",
+        "Utiliser des boutures saines certifiées",
+        "Contrôler les aleurodes (insectes vecteurs) avec de la cendre de bois",
+        "Planter des variétés résistantes comme la TMS 30572"
+      ],
+      "gravite": "élevée",
+      "gravite_score": 3,
+      "transmission": "Insectes (aleurodes), boutures infectées",
+      "saison_risque": "Saison sèche"
+    },
+    {
+      "id": 2,
+      "classe_modele": "mais_rouille",
+      "plante": "Maïs",
+      "nom_fr": "Rouille du maïs",
+      "nom_ewondo": "Owondo mbidzi",
+      "nom_fulfulde": "Kusel masara",
+      "description_fr": "Maladie fongique qui attaque les feuilles du maïs. Elle réduit la photosynthèse et peut faire perdre jusqu'à 40% de la récolte.",
+      "symptomes": [
+        "Petites pustules brun-orange sur les deux faces des feuilles",
+        "Feuilles qui jaunissent puis sèchent",
+        "Tiges qui s'affaiblissent",
+        "Épis mal formés"
+      ],
+      "traitements_locaux": [
+        "Espacer les plants pour améliorer la circulation d'air",
+        "Supprimer les feuilles très atteintes",
+        "Appliquer une bouillie de cendres et d'eau sur les feuilles",
+        "Rotation des cultures avec le niébé ou l'arachide"
+      ],
+      "gravite": "moyenne",
+      "gravite_score": 2,
+      "transmission": "Spores transportées par le vent et l'eau de pluie",
+      "saison_risque": "Saison des pluies"
+    },
+    {
+      "id": 3,
+      "classe_modele": "plantain_cercospora",
+      "plante": "Plantain",
+      "nom_fr": "Cercosporiose noire (Maladie de Black Sigatoka)",
+      "nom_ewondo": "Owondo biyem",
+      "nom_fulfulde": "Cukuli abutu",
+      "description_fr": "Maladie fongique très destructrice du plantain et de la banane. Sans traitement, elle peut détruire la totalité d'une plantation.",
+      "symptomes": [
+        "Stries jaunes sur les feuilles qui deviennent brunes puis noires",
+        "Feuilles qui se nécrosent et tombent prématurément",
+        "Régimes de petite taille",
+        "Fruits qui mûrissent trop vite"
+      ],
+      "traitements_locaux": [
+        "Couper et enterrer les feuilles atteintes loin de la plantation",
+        "Désinfester les outils de coupe avec de l'eau bouillante",
+        "Assurer un bon drainage du sol",
+        "Appliquer de l'huile de neem diluée en pulvérisation préventive"
+      ],
+      "gravite": "élevée",
+      "gravite_score": 3,
+      "transmission": "Spores fongiques, vent, eau de pluie, outils contaminés",
+      "saison_risque": "Toute l'année, pic en saison humide"
+    },
+    {
+      "id": 4,
+      "classe_modele": "manioc_bacteriose",
+      "plante": "Manioc",
+      "nom_fr": "Bactériose vasculaire du manioc",
+      "nom_ewondo": "Nkul owondo maniok",
+      "nom_fulfulde": "Cukuli daneeje kassaaba",
+      "description_fr": "Maladie bactérienne qui bloque les vaisseaux conducteurs de la plante. Elle provoque un flétrissement rapide et peut tuer la plante en quelques semaines.",
+      "symptomes": [
+        "Flétrissement soudain des feuilles du sommet",
+        "Taches angulaires brunes sur les feuilles",
+        "Jaunissement des nervures",
+        "Gomme brunâtre qui suinte des tiges coupées"
+      ],
+      "traitements_locaux": [
+        "Arracher immédiatement les plants infectés et brûler",
+        "Ne jamais laisser les résidus sur le champ",
+        "Désinfecter les outils entre chaque usage",
+        "Laisser la parcelle en jachère au moins 6 mois"
+      ],
+      "gravite": "très élevée",
+      "gravite_score": 4,
+      "transmission": "Eau de pluie, insectes, outils, sol contaminé",
+      "saison_risque": "Saison des pluies"
+    },
+    {
+      "id": 5,
+      "classe_modele": "mais_helminthosporiose",
+      "plante": "Maïs",
+      "nom_fr": "Helminthosporiose du maïs (Brûlure des feuilles)",
+      "nom_ewondo": "Owondo bele mbidzi",
+      "nom_fulfulde": "Mbidooje masara",
+      "description_fr": "Maladie fongique qui provoque de grandes plages nécrotiques sur les feuilles. Elle est favorisée par l'humidité élevée et les températures douces.",
+      "symptomes": [
+        "Grandes taches allongées grises ou brun clair sur les feuilles",
+        "Taches avec bordures brun-foncé bien délimitées",
+        "Feuilles qui se dessèchent rapidement",
+        "Épis avec grains mal remplis"
+      ],
+      "traitements_locaux": [
+        "Éliminer les résidus de récolte après la saison",
+        "Planter en début de saison pour éviter le pic d'humidité",
+        "Espacer les lignes de plantation pour une meilleure aération",
+        "Utiliser des semences certifiées résistantes"
+      ],
+      "gravite": "moyenne",
+      "gravite_score": 2,
+      "transmission": "Résidus de culture infectés, vent, semences contaminées",
+      "saison_risque": "Fin de saison des pluies"
+    }
+  ]
+}
