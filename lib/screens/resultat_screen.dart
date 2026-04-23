@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/services.dart';       // pour lire les assets
 import 'package:flutter_tts/flutter_tts.dart'; // synthèse vocale
+import 'classifier.dart';
 
 class ResultatScreen extends StatefulWidget {
   final File imageFile;
@@ -30,23 +31,38 @@ class _ResultatScreenState extends State<ResultatScreen> {
     lancerAnalyse();
   }
 
-  // ── Simulation de l'analyse IA ────────────────────────────────────
-  // (Avany remplacera cette fonction par le vrai modèle TFLite)
+  // ── L'analyse IA ────────────────────────────────────
   Future<void> lancerAnalyse() async {
     setState(() => isLoading = true);
 
-    // Simulation : on attend 2 secondes (comme si l'IA analysait)
-    await Future.delayed(Duration(seconds: 2));
-
-    // On charge la base de données maladies depuis les assets
     try {
+      // ── Vrai modèle IA ──────────────────────────────────────────
+      Classifier classifier = Classifier();
+      await classifier.charger();
+      String? classePredi = await classifier.predire(widget.imageFile);
+      classifier.dispose();
+
+      // ── Charger la base de données maladies ─────────────────────
       String jsonString = await rootBundle.loadString('assets/maladies_madoula.json');
       Map<String, dynamic> data = jsonDecode(jsonString);
       List maladies = data['maladies'];
 
-      // SIMULATION : on prend la première maladie comme résultat
-      // Avany remplacera cette ligne par : int index = modeleIA.predire(imageFile);
-      Map<String, dynamic> resultat = maladies[0];
+      // ── Trouver la maladie correspondant à la classe prédite ────
+      Map<String, dynamic>? resultat;
+
+      if (classePredi != null) {
+        // Chercher dans la BDD par classe_modele
+        for (var m in maladies) {
+          if (classePredi.toLowerCase().contains(
+              m['classe_modele'].toString().toLowerCase().split('_')[0])) {
+            resultat = m;
+            break;
+          }
+        }
+      }
+
+      // Si aucune correspondance trouvée, prendre la première
+      resultat ??= maladies[0];
 
       setState(() {
         maladie = resultat;
@@ -54,7 +70,7 @@ class _ResultatScreenState extends State<ResultatScreen> {
       });
     } catch (e) {
       setState(() {
-        erreur = 'Erreur lors de la lecture de la base de données.';
+        erreur = 'Erreur lors de l\'analyse : $e';
         isLoading = false;
       });
     }

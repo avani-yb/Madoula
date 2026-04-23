@@ -208,7 +208,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
 
               // ── Mention bas de page ───────────────────────────────────
               Text(
-                'IAI Cameroun • 2025',
+                'IAI Cameroun • 2026',
                 style: TextStyle(fontSize: 11, color: Colors.grey[400]),
               ),
             ],
