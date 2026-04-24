@@ -40,6 +40,19 @@ class _ResultatScreenState extends State<ResultatScreen> {
       Classifier classifier = Classifier();
       await classifier.charger();
       String? classePredi = await classifier.predire(widget.imageFile);
+      // DEBUG — à supprimer après
+      print('=== DEBUG MADOULA ===');
+      print('Classe prédite : $classePredi');
+
+      // Charger la BDD
+      String jsonString = await rootBundle.loadString('assets/maladies_madoula.json');
+      Map<String, dynamic> data = jsonDecode(jsonString);
+      List maladies = data['maladies'];
+
+      print('Classes dans le JSON :');
+      for (var m in maladies) {
+        print('  → ${m['classe_modele']}');
+      }
       classifier.dispose();
 
       // ── Charger la base de données maladies ─────────────────────
