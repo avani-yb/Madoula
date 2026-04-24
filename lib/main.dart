@@ -26,3 +26,4 @@ class MadoulaApp extends StatelessWidget {
       home: AccueilScreen(),
     );
   }
+}

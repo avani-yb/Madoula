@@ -15,7 +15,7 @@ dependencies:
   flutter_tts: ^4.2.5
   sqflite: ^2.3.0
   path_provider: ^2.1.1
-  tflite_flutter: ^0.10.4      #  moteur TFLite
+  tflite_flutter: ^0.11.0      #  moteur TFLite
   image: ^4.1.3                 # manipulation d'images pour le preprocessing
 
 dev_dependencies:
