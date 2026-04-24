@@ -55,11 +55,6 @@ class _ResultatScreenState extends State<ResultatScreen> {
       }
       classifier.dispose();
 
-      // ── Charger la base de données maladies ─────────────────────
-      String jsonString = await rootBundle.loadString('assets/maladies_madoula.json');
-      Map<String, dynamic> data = jsonDecode(jsonString);
-      List maladies = data['maladies'];
-
       // ── Trouver la maladie correspondant à la classe prédite ────
       Map<String, dynamic>? resultat;
 
