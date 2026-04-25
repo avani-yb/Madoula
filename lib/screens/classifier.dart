@@ -14,7 +14,7 @@ class Classifier {
   Future<void> charger() async {
     try {
       // Charger le modèle TFLite
-      _interpreter = await Interpreter.fromAsset('assets/madoula_model.tflite');
+      _interpreter = await Interpreter.fromAsset('assets/madoula_compat.tflite');
 
       // Charger class_indices.json
       String jsonString = await rootBundle.loadString('assets/class_indices.json');
