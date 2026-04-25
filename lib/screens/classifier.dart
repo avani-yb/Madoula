@@ -36,7 +36,7 @@ class Classifier {
     if (!_isLoaded) await charger();
 
     try {
-      List<int> imageBytes = await imageFile.readAsBytes();
+      Uint8List imageBytes = await imageFile.readAsBytes();
       img.Image? image = img.decodeImage(imageBytes);
       if (image == null) return null;
 
