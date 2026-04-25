@@ -53,29 +53,47 @@ class _ResultatScreenState extends State<ResultatScreen> {
       for (var m in maladies) {
         print('  → ${m['classe_modele']}');
       }
+      // On arrete ici
       classifier.dispose();
+
+      // ── Charger la base de données maladies ─────────────────────
+      String jsonString = await rootBundle.loadString('assets/maladies_madoula.json');
+      Map<String, dynamic> data = jsonDecode(jsonString);
+      List maladies = data['maladies'];
 
       // ── Trouver la maladie correspondant à la classe prédite ────
       Map<String, dynamic>? resultat;
 
-      if (classePredi != null) {
-        // Chercher dans la BDD par classe_modele
-        for (var m in maladies) {
-          if (classePredi.toLowerCase().contains(
-              m['classe_modele'].toString().toLowerCase().split('_')[0])) {
-            resultat = m;
-            break;
-          }
+      // Cas : image non reconnue (confiance trop faible)
+      if (classePredi == 'NON_PLANTE' || classePredi == null) {
+        setState(() {
+          erreur = "Je ne reconnais pas de plante sur cette image.\nVeuillez prendre une photo nette d'une feuille, tige ou fruit.";
+          isLoading = false;
+        });
+        return;
+      }
+
+      // Chercher la correspondance exacte dans le JSON
+      for (var m in maladies) {
+        if (m['classe_modele'].toString() == classePredi) {
+          resultat = m;
+          break;
         }
       }
 
-      // Si aucune correspondance trouvée, prendre la première
-      resultat ??= maladies[0];
+      // Si toujours pas trouvé — classe pas dans notre JSON
+      if (resultat == null) {
+        setState(() {
+          erreur = "Plante détectée mais non répertoriée dans notre base.\nEssayez avec une autre photo.";
+          isLoading = false;
+        });
+        return;
+      }
 
       setState(() {
         maladie = resultat;
         isLoading = false;
-      });
+    });
     } catch (e) {
       setState(() {
         erreur = 'Erreur lors de l\'analyse : $e';
