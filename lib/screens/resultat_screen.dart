@@ -595,13 +595,23 @@ class _ResultatScreenState extends State<ResultatScreen> {
   Future<void> _envoyerFeedback(bool estCorrect) async {
     if (maladie == null) return;
 
-    setState(() => _feedbackDonne = estCorrect);
+    try {
+      await FeedbackService.sauvegarder(
+        classePredi: maladie!['classe_modele'] ?? 'inconnu',
+        confiance: _confianceModele,
+        estCorrect: estCorrect,
+        langue: widget.langue,
+      );
 
-    await FeedbackService.sauvegarder(
-      classePredi: maladie!['classe_modele'] ?? 'inconnu',
-      confiance: _confianceModele,
-      estCorrect: estCorrect,
-      langue: widget.langue,
-    );
+      if (!mounted) return;
+      setState(() => _feedbackDonne = estCorrect);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Impossible d'enregistrer votre feedback. Réessayez."),
+        ),
+      );
+    }
   }
 }
