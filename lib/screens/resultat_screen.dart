@@ -1,28 +1,36 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'dart:convert';
-import 'package:flutter/services.dart';       // pour lire les assets
+import 'package:flutter/services.dart'; // pour lire les assets
 import 'package:flutter_tts/flutter_tts.dart'; // synthèse vocale
 import 'classifier.dart';
+import '../services/feedback_service.dart';
 
 class ResultatScreen extends StatefulWidget {
   final File imageFile;
   final String langue;
 
-  const ResultatScreen({super.key, required this.imageFile, required this.langue});
+  const ResultatScreen({
+    super.key,
+    required this.imageFile,
+    required this.langue,
+  });
 
   @override
   _ResultatScreenState createState() => _ResultatScreenState();
 }
 
 class _ResultatScreenState extends State<ResultatScreen> {
-
   // ── Variables d'état ──────────────────────────────────────────────
-  bool isLoading = true;          // true pendant que l'IA analyse
-  Map<String, dynamic>? maladie;  // données de la maladie trouvée
-  String erreur = '';             // message d'erreur si besoin
+  bool isLoading = true; // true pendant que l'IA analyse
+  Map<String, dynamic>? maladie; // données de la maladie trouvée
+  String erreur = ''; // message d'erreur si besoin
   FlutterTts flutterTts = FlutterTts(); // moteur de synthèse vocale
-  bool isReading = false;         // true pendant la lecture vocale
+  bool isReading = false; // true pendant la lecture vocale
+
+  // ── Variables feedback ─────────────────────────────────────────────
+  bool? _feedbackDonne; // null = pas encore, true = like, false = dislike
+  double _confianceModele = 0.0; // à stocker depuis predire()
 
   // ── Au démarrage de l'écran ───────────────────────────────────────
   @override
@@ -39,13 +47,19 @@ class _ResultatScreenState extends State<ResultatScreen> {
       // ── Vrai modèle IA ──────────────────────────────────────────
       Classifier classifier = Classifier();
       await classifier.charger();
-      String? classePredi = await classifier.predire(widget.imageFile);
+      Map<String, dynamic> prediction = await classifier.predireAvecConfiance(
+        widget.imageFile,
+      );
+      String? classePredi = prediction['classe'];
+      _confianceModele = prediction['confiance'] ?? 0.0;
       // DEBUG — à supprimer après
       print('=== DEBUG MADOULA ===');
       print('Classe prédite : $classePredi');
 
       // Charger la BDD
-      String jsonString = await rootBundle.loadString('assets/maladies_madoula.json');
+      String jsonString = await rootBundle.loadString(
+        'assets/maladies_madoula.json',
+      );
       Map<String, dynamic> data = jsonDecode(jsonString);
       List maladies = data['maladies'];
 
@@ -53,24 +67,39 @@ class _ResultatScreenState extends State<ResultatScreen> {
       for (var m in maladies) {
         print('  → ${m['classe_modele']}');
       }
+      // On arrete ici
       classifier.dispose();
 
       // ── Trouver la maladie correspondant à la classe prédite ────
       Map<String, dynamic>? resultat;
 
-      if (classePredi != null) {
-        // Chercher dans la BDD par classe_modele
-        for (var m in maladies) {
-          if (classePredi.toLowerCase().contains(
-              m['classe_modele'].toString().toLowerCase().split('_')[0])) {
-            resultat = m;
-            break;
-          }
+      // Cas : image non reconnue (confiance trop faible)
+      if (classePredi == 'NON_PLANTE' || classePredi == null) {
+        setState(() {
+          erreur =
+              "Je ne reconnais pas de plante sur cette image.\nVeuillez prendre une photo nette d'une feuille, tige ou fruit.";
+          isLoading = false;
+        });
+        return;
+      }
+
+      // Chercher la correspondance exacte dans le JSON
+      for (var m in maladies) {
+        if (m['classe_modele'].toString() == classePredi) {
+          resultat = m;
+          break;
         }
       }
 
-      // Si aucune correspondance trouvée, prendre la première
-      resultat ??= maladies[0];
+      // Si toujours pas trouvé — classe pas dans notre JSON
+      if (resultat == null) {
+        setState(() {
+          erreur =
+              "Plante détectée mais non répertoriée dans notre base.\nEssayez avec une autre photo.";
+          isLoading = false;
+        });
+        return;
+      }
 
       setState(() {
         maladie = resultat;
@@ -87,9 +116,12 @@ class _ResultatScreenState extends State<ResultatScreen> {
   // ── Récupérer le texte selon la langue choisie ────────────────────
   String getTexte(String champFr, String champEwo, String champFul) {
     switch (widget.langue) {
-      case 'EWO': return maladie![champEwo] ?? maladie![champFr];
-      case 'FUL': return maladie![champFul] ?? maladie![champFr];
-      default:    return maladie![champFr];
+      case 'EWO':
+        return maladie![champEwo] ?? maladie![champFr];
+      case 'FUL':
+        return maladie![champFul] ?? maladie![champFr];
+      default:
+        return maladie![champFr];
     }
   }
 
@@ -133,7 +165,6 @@ class _ResultatScreenState extends State<ResultatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       // ── Barre du haut ──────────────────────────────────────────────
       appBar: AppBar(
         title: Text(
@@ -148,10 +179,10 @@ class _ResultatScreenState extends State<ResultatScreen> {
       backgroundColor: Color(0xFFF1F8E9),
 
       body: isLoading
-          ? _ecranChargement()   // pendant l'analyse
+          ? _ecranChargement() // pendant l'analyse
           : erreur.isNotEmpty
-              ? _ecranErreur()   // si erreur
-              : _ecranResultat(), // résultat normal
+          ? _ecranErreur() // si erreur
+          : _ecranResultat(), // résultat normal
     );
   }
 
@@ -161,10 +192,7 @@ class _ResultatScreenState extends State<ResultatScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
-            color: Color(0xFF2E7D32),
-            strokeWidth: 3,
-          ),
+          CircularProgressIndicator(color: Color(0xFF2E7D32), strokeWidth: 3),
           SizedBox(height: 24),
           Text(
             'Analyse en cours...',
@@ -194,12 +222,17 @@ class _ResultatScreenState extends State<ResultatScreen> {
           children: [
             Icon(Icons.error_outline, size: 64, color: Colors.red),
             SizedBox(height: 16),
-            Text(erreur, textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 15, color: Colors.red[700])),
+            Text(
+              erreur,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 15, color: Colors.red[700]),
+            ),
             SizedBox(height: 24),
             ElevatedButton(
               onPressed: lancerAnalyse,
-              style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF2E7D32)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF2E7D32),
+              ),
               child: Text('Réessayer'),
             ),
           ],
@@ -219,7 +252,6 @@ class _ResultatScreenState extends State<ResultatScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           // ── Carte principale : nom de la maladie ───────────────────
           Container(
             width: double.infinity,
@@ -228,7 +260,11 @@ class _ResultatScreenState extends State<ResultatScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
-                BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
               ],
             ),
             child: Column(
@@ -240,7 +276,11 @@ class _ResultatScreenState extends State<ResultatScreen> {
                     color: getCouleurGravite().withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(getIconeGravite(), size: 40, color: getCouleurGravite()),
+                  child: Icon(
+                    getIconeGravite(),
+                    size: 40,
+                    color: getCouleurGravite(),
+                  ),
                 ),
                 SizedBox(height: 12),
 
@@ -265,7 +305,10 @@ class _ResultatScreenState extends State<ResultatScreen> {
                   ),
                   child: Text(
                     '🌱 ${maladie!['plante']}',
-                    style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Color(0xFF2E7D32),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 SizedBox(height: 8),
@@ -290,7 +333,11 @@ class _ResultatScreenState extends State<ResultatScreen> {
                 // Description
                 Text(
                   maladie!['description_fr'],
-                  style: TextStyle(fontSize: 13.5, color: Colors.grey[700], height: 1.5),
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    color: Colors.grey[700],
+                    height: 1.5,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -315,7 +362,12 @@ class _ResultatScreenState extends State<ResultatScreen> {
             items: traitements,
           ),
 
-          SizedBox(height: 24),
+          SizedBox(height: 16),
+
+          // ── Carte feedback ─────────────────────────────────────────
+          _carteFeedback(),
+
+          SizedBox(height: 16),
 
           // ── Bouton : lire à voix haute ─────────────────────────────
           SizedBox(
@@ -349,10 +401,7 @@ class _ResultatScreenState extends State<ResultatScreen> {
                 Navigator.popUntil(context, (route) => route.isFirst);
               },
               icon: Icon(Icons.refresh),
-              label: Text(
-                'Nouvelle analyse',
-                style: TextStyle(fontSize: 16),
-              ),
+              label: Text('Nouvelle analyse', style: TextStyle(fontSize: 16)),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Color(0xFF2E7D32),
                 side: BorderSide(color: Color(0xFF2E7D32), width: 2),
@@ -383,7 +432,11 @@ class _ResultatScreenState extends State<ResultatScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -402,24 +455,153 @@ class _ResultatScreenState extends State<ResultatScreen> {
           SizedBox(height: 4),
 
           // Liste des items
-          ...items.map((item) => Padding(
-            padding: EdgeInsets.only(bottom: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.arrow_right, color: couleur, size: 20),
-                SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    item.toString(),
-                    style: TextStyle(fontSize: 13.5, color: Colors.grey[800], height: 1.4),
+          ...items.map(
+            (item) => Padding(
+              padding: EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.arrow_right, color: couleur, size: 20),
+                  SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      item.toString(),
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        color: Colors.grey[800],
+                        height: 1.4,
+                      ),
+                    ),
                   ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Widget : carte like / dislike ─────────────────────────────────
+  Widget _carteFeedback() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Ce diagnostic est-il correct ?',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+          SizedBox(height: 14),
+
+          if (_feedbackDonne == null) ...[
+            // ── Boutons like / dislike ─────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // 👍 Like
+                _boutonFeedback(
+                  label: 'Oui, correct',
+                  icone: Icons.thumb_up_alt_rounded,
+                  couleur: Color(0xFF2E7D32),
+                  onTap: () => _envoyerFeedback(true),
+                ),
+                SizedBox(width: 16),
+                // 👎 Dislike
+                _boutonFeedback(
+                  label: 'Non, incorrect',
+                  icone: Icons.thumb_down_alt_rounded,
+                  couleur: Colors.red[600]!,
+                  onTap: () => _envoyerFeedback(false),
                 ),
               ],
             ),
-          )),
+          ] else ...[
+            // ── Confirmation ───────────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  _feedbackDonne! ? Icons.check_circle : Icons.info_outline,
+                  color: _feedbackDonne! ? Color(0xFF2E7D32) : Colors.orange,
+                  size: 22,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  _feedbackDonne!
+                      ? 'Merci ! Cela aide le modèle à s\'améliorer.'
+                      : 'Merci ! Nous en tiendrons compte.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  // ── Widget bouton de feedback ─────────────────────────────────────
+  Widget _boutonFeedback({
+    required String label,
+    required IconData icone,
+    required Color couleur,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: couleur.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: couleur, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Icon(icone, color: couleur, size: 22),
+            SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: couleur,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Envoyer le feedback ───────────────────────────────────────────
+  Future<void> _envoyerFeedback(bool estCorrect) async {
+    if (maladie == null) return;
+
+    setState(() => _feedbackDonne = estCorrect);
+
+    await FeedbackService.sauvegarder(
+      classePredi: maladie!['classe_modele'] ?? 'inconnu',
+      confiance: _confianceModele,
+      estCorrect: estCorrect,
+      langue: widget.langue,
     );
   }
 }

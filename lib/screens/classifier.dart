@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
@@ -14,10 +15,14 @@ class Classifier {
   Future<void> charger() async {
     try {
       // Charger le modèle TFLite
-      _interpreter = await Interpreter.fromAsset('assets/madoula_model.tflite');
+      _interpreter = await Interpreter.fromAsset(
+        'assets/madoula_compat.tflite',
+      );
 
       // Charger class_indices.json
-      String jsonString = await rootBundle.loadString('assets/class_indices.json');
+      String jsonString = await rootBundle.loadString(
+        'assets/class_indices.json',
+      );
       _classIndices = Map<String, int>.from(jsonDecode(jsonString));
 
       // Inverser : index → nom de classe
@@ -36,52 +41,94 @@ class Classifier {
     if (!_isLoaded) await charger();
 
     try {
-      // Lire et redimensionner l'image en 224x224
       Uint8List imageBytes = await imageFile.readAsBytes();
       img.Image? image = img.decodeImage(imageBytes);
       if (image == null) return null;
 
       img.Image resized = img.copyResize(image, width: 224, height: 224);
 
-      // Convertir en tableau Float32 normalisé [0, 1]
       var input = List.generate(
         1,
         (_) => List.generate(
           224,
-          (y) => List.generate(
-            224,
-            (x) {
-              img.Pixel pixel = resized.getPixel(x, y);
-              return [
-                pixel.r / 255.0,
-                pixel.g / 255.0,
-                pixel.b / 255.0,
-              ];
-            },
-          ),
+          (y) => List.generate(224, (x) {
+            img.Pixel pixel = resized.getPixel(x, y);
+            return [pixel.r / 255.0, pixel.g / 255.0, pixel.b / 255.0];
+          }),
         ),
       );
 
-      // Préparer la sortie
-      var output = List.filled(1 * _classIndices.length, 0.0)
-          .reshape([1, _classIndices.length]);
+      var output = List.filled(
+        1 * _classIndices.length,
+        0.0,
+      ).reshape([1, _classIndices.length]);
 
-      // Inférence
       _interpreter.run(input, output);
 
-      // Trouver la classe avec la plus haute probabilité
       List<double> scores = List<double>.from(output[0]);
       int bestIndex = scores.indexOf(scores.reduce((a, b) => a > b ? a : b));
       double confidence = scores[bestIndex];
-
       String classePredi = _indexToClass[bestIndex] ?? 'inconnu';
 
-      print('Prédiction : $classePredi (${(confidence * 100).toStringAsFixed(1)}%)');
+      print(
+        'Prédiction : $classePredi (${(confidence * 100).toStringAsFixed(1)}%)',
+      );
+
+      // Seuil de confiance — si < 60% on refuse de répondre
+      if (confidence < 0.60) return 'NON_PLANTE';
 
       return classePredi;
     } catch (e) {
       print('Erreur prédiction : $e');
       return null;
+    }
+  }
+
+  // ── Version enrichie qui retourne aussi la confiance ─────────────
+  Future<Map<String, dynamic>> predireAvecConfiance(File imageFile) async {
+    if (!_isLoaded) await charger();
+
+    try {
+      Uint8List imageBytes = await imageFile.readAsBytes();
+      img.Image? image = img.decodeImage(imageBytes);
+      if (image == null) return {'classe': null, 'confiance': 0.0};
+
+      img.Image resized = img.copyResize(image, width: 224, height: 224);
+
+      var input = List.generate(
+        1,
+        (_) => List.generate(
+          224,
+          (y) => List.generate(224, (x) {
+            img.Pixel pixel = resized.getPixel(x, y);
+            return [pixel.r / 255.0, pixel.g / 255.0, pixel.b / 255.0];
+          }),
+        ),
+      );
+
+      var output = List.filled(
+        1 * _classIndices.length,
+        0.0,
+      ).reshape([1, _classIndices.length]);
+
+      _interpreter.run(input, output);
+
+      List<double> scores = List<double>.from(output[0]);
+      int bestIndex = scores.indexOf(scores.reduce((a, b) => a > b ? a : b));
+      double confidence = scores[bestIndex];
+      String classePredi = _indexToClass[bestIndex] ?? 'inconnu';
+
+      print(
+        'Prédiction : $classePredi (${(confidence * 100).toStringAsFixed(1)}%)',
+      );
+
+      return {
+        'classe': confidence < 0.60 ? 'NON_PLANTE' : classePredi,
+        'confiance': confidence,
+      };
+    } catch (e) {
+      print('Erreur prédiction : $e');
+      return {'classe': null, 'confiance': 0.0};
     }
   }
 
