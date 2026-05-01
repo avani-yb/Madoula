@@ -18,7 +18,14 @@ class FeedbackService {
     List<dynamic> liste = [];
     String? jsonExistant = prefs.getString(_cleStockage);
     if (jsonExistant != null) {
-      liste = jsonDecode(jsonExistant);
+      try {
+        final decode = jsonDecode(jsonExistant);
+        if (decode is List) {
+          liste = decode;
+        }
+      } catch (_) {
+        liste = [];
+      }
     }
 
     // Créer le nouveau feedback
