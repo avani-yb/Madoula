@@ -30,3 +30,5 @@ flutter:
     - assets/maladies_madoula.json
     - assets/madoula_compat.tflite  #  le modèle
     - assets/class_indices.json    #  le mapping
+    - assets/filtre_model.tflite
+    - assets/filtre_indices.json
