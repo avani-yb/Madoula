@@ -70,14 +70,18 @@ class _ResultatScreenState extends State<ResultatScreen> {
       // On arrete ici
       classifier.dispose();
 
+      // ── Charger la base de données maladies ─────────────────────
+      String jsonString = await rootBundle.loadString('assets/maladies_madoula.json');
+      Map<String, dynamic> data = jsonDecode(jsonString);
+      List maladies = data['maladies'];
+
       // ── Trouver la maladie correspondant à la classe prédite ────
       Map<String, dynamic>? resultat;
 
       // Cas : image non reconnue (confiance trop faible)
       if (classePredi == 'NON_PLANTE' || classePredi == null) {
         setState(() {
-          erreur =
-              "Je ne reconnais pas de plante sur cette image.\nVeuillez prendre une photo nette d'une feuille, tige ou fruit.";
+          erreur = "Je ne reconnais pas de plante sur cette image.\nVeuillez prendre une photo nette d'une feuille, tige ou fruit.";
           isLoading = false;
         });
         return;
@@ -94,8 +98,7 @@ class _ResultatScreenState extends State<ResultatScreen> {
       // Si toujours pas trouvé — classe pas dans notre JSON
       if (resultat == null) {
         setState(() {
-          erreur =
-              "Plante détectée mais non répertoriée dans notre base.\nEssayez avec une autre photo.";
+          erreur = "Plante détectée mais non répertoriée dans notre base.\nEssayez avec une autre photo.";
           isLoading = false;
         });
         return;
@@ -104,7 +107,7 @@ class _ResultatScreenState extends State<ResultatScreen> {
       setState(() {
         maladie = resultat;
         isLoading = false;
-      });
+    });
     } catch (e) {
       setState(() {
         erreur = 'Erreur lors de l\'analyse : $e';

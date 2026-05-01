@@ -48,20 +48,18 @@ class Classifier {
       img.Image resized = img.copyResize(image, width: 224, height: 224);
 
       var input = List.generate(
-        1,
-        (_) => List.generate(
-          224,
-          (y) => List.generate(224, (x) {
-            img.Pixel pixel = resized.getPixel(x, y);
-            return [pixel.r / 255.0, pixel.g / 255.0, pixel.b / 255.0];
-          }),
+        1, (_) => List.generate(
+          224, (y) => List.generate(
+            224, (x) {
+              img.Pixel pixel = resized.getPixel(x, y);
+              return [pixel.r / 255.0, pixel.g / 255.0, pixel.b / 255.0];
+            },
+          ),
         ),
       );
 
-      var output = List.filled(
-        1 * _classIndices.length,
-        0.0,
-      ).reshape([1, _classIndices.length]);
+      var output = List.filled(1 * _classIndices.length, 0.0)
+          .reshape([1, _classIndices.length]);
 
       _interpreter.run(input, output);
 
@@ -73,6 +71,9 @@ class Classifier {
       print(
         'Prédiction : $classePredi (${(confidence * 100).toStringAsFixed(1)}%)',
       );
+
+      // Seuil de confiance — si < 60% on refuse de répondre
+      if (confidence < 0.60) return 'NON_PLANTE';
 
       // Seuil de confiance — si < 60% on refuse de répondre
       if (confidence < 0.60) return 'NON_PLANTE';
