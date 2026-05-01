@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/services.dart'; // pour lire les assets
 import 'package:flutter_tts/flutter_tts.dart'; // synthèse vocale
-import 'filtre_classifier.dart';
+import 'filter_classifier.dart';
 import 'classifier.dart';
 import '../services/feedback_service.dart';
 
