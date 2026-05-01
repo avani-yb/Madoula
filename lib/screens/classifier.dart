@@ -86,7 +86,12 @@ class Classifier {
 
   // ── Version enrichie qui retourne aussi la confiance ─────────────
   Future<Map<String, dynamic>> predireAvecConfiance(File imageFile) async {
-    if (!_isLoaded) await charger();
+    if (!_isLoaded) {
+      await charger();
+      if (!_isLoaded) {
+        return {'classe': null, 'confiance': 0.0};
+      }
+    }
 
     try {
       Uint8List imageBytes = await imageFile.readAsBytes();
