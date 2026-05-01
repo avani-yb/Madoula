@@ -17,6 +17,7 @@ dependencies:
   path_provider: ^2.1.1
   tflite_flutter: ^0.11.0      #  moteur TFLite
   image: ^4.1.3                 # manipulation d'images pour le preprocessing
+  shared_preferences: ^2.2.2   # pour le stockage local des feedbacks
 
 dev_dependencies:
   flutter_test:
@@ -27,5 +28,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/maladies_madoula.json
-    - assets/madoula_model.tflite  #  le modèle
+    - assets/madoula_compat.tflite  #  le modèle
     - assets/class_indices.json    #  le mapping
