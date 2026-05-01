@@ -3,8 +3,10 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/services.dart'; // pour lire les assets
 import 'package:flutter_tts/flutter_tts.dart'; // synthèse vocale
+import 'filtre_classifier.dart';
 import 'classifier.dart';
 import '../services/feedback_service.dart';
+
 
 class ResultatScreen extends StatefulWidget {
   final File imageFile;
@@ -42,72 +44,65 @@ class _ResultatScreenState extends State<ResultatScreen> {
   // ── L'analyse IA ────────────────────────────────────
   Future<void> lancerAnalyse() async {
     setState(() => isLoading = true);
-
+  
     try {
-      // ── Vrai modèle IA ──────────────────────────────────────────
-      Classifier classifier = Classifier();
-      await classifier.charger();
-      Map<String, dynamic> prediction = await classifier.predireAvecConfiance(
-        widget.imageFile,
-      );
-      String? classePredi = prediction['classe'];
-      _confianceModele = prediction['confiance'] ?? 0.0;
-      // DEBUG — à supprimer après
-      print('=== DEBUG MADOULA ===');
-      print('Classe prédite : $classePredi');
-
-      // Charger la BDD
-      String jsonString = await rootBundle.loadString(
-        'assets/maladies_madoula.json',
-      );
-      Map<String, dynamic> data = jsonDecode(jsonString);
-      List maladies = data['maladies'];
-
-      print('Classes dans le JSON :');
-      for (var m in maladies) {
-        print('  → ${m['classe_modele']}');
-      }
-      // On arrete ici
-      classifier.dispose();
-
-      // ── Charger la base de données maladies ─────────────────────
-      String jsonString = await rootBundle.loadString('assets/maladies_madoula.json');
-      Map<String, dynamic> data = jsonDecode(jsonString);
-      List maladies = data['maladies'];
-
-      // ── Trouver la maladie correspondant à la classe prédite ────
-      Map<String, dynamic>? resultat;
-
-      // Cas : image non reconnue (confiance trop faible)
-      if (classePredi == 'NON_PLANTE' || classePredi == null) {
+      // ═══ ÉTAPE 1 : Filtre — est-ce une plante ? ═══
+      FiltreClassifier filtre = FiltreClassifier();
+      await filtre.charger();
+      bool estPlante = await filtre.estUnePlante(widget.imageFile);
+      filtre.dispose();
+  
+      if (!estPlante) {
         setState(() {
-          erreur = "Je ne reconnais pas de plante sur cette image.\nVeuillez prendre une photo nette d'une feuille, tige ou fruit.";
+          erreur = "Je ne détecte pas de plante sur cette image.\nVeuillez photographier une feuille, tige ou fruit.";
           isLoading = false;
         });
         return;
       }
-
-      // Chercher la correspondance exacte dans le JSON
+  
+      // ═══ ÉTAPE 2 : Modèle maladie ═══
+      Classifier classifier = Classifier();
+      await classifier.charger();
+      String? classePredi = await classifier.predire(widget.imageFile);
+      classifier.dispose();
+  
+      print('=== DEBUG MADOULA ===');
+      print('Classe prédite : $classePredi');
+  
+      String jsonString = await rootBundle.loadString('assets/maladies_madoula.json');
+      Map<String, dynamic> data = jsonDecode(jsonString);
+      List maladies = data['maladies'];
+  
+      if (classePredi == null) {
+        setState(() {
+          erreur = "Analyse impossible. Veuillez réessayer avec une photo plus nette.";
+          isLoading = false;
+        });
+        return;
+      }
+  
+      // Correspondance exacte avec le JSON
+      Map<String, dynamic>? resultat;
       for (var m in maladies) {
         if (m['classe_modele'].toString() == classePredi) {
           resultat = m;
           break;
         }
       }
-
-      // Si toujours pas trouvé — classe pas dans notre JSON
+  
       if (resultat == null) {
         setState(() {
-          erreur = "Plante détectée mais non répertoriée dans notre base.\nEssayez avec une autre photo.";
+          erreur = "Plante détectée mais maladie non répertoriée.\nEssayez avec une autre photo.";
           isLoading = false;
         });
         return;
       }
-
+  
       setState(() {
         maladie = resultat;
         isLoading = false;
-    });
+      });
+  
     } catch (e) {
       setState(() {
         erreur = 'Erreur lors de l\'analyse : $e';
