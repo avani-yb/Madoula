@@ -7,7 +7,6 @@ import 'filter_classifier.dart';
 import 'classifier.dart';
 import '../services/feedback_service.dart';
 
-
 class ResultatScreen extends StatefulWidget {
   final File imageFile;
   final String langue;
@@ -44,43 +43,47 @@ class _ResultatScreenState extends State<ResultatScreen> {
   // ── L'analyse IA ────────────────────────────────────
   Future<void> lancerAnalyse() async {
     setState(() => isLoading = true);
-  
+
     try {
       // ═══ ÉTAPE 1 : Filtre — est-ce une plante ? ═══
       FiltreClassifier filtre = FiltreClassifier();
       await filtre.charger();
       bool estPlante = await filtre.estUnePlante(widget.imageFile);
       filtre.dispose();
-  
+
       if (!estPlante) {
         setState(() {
-          erreur = "Je ne détecte pas de plante sur cette image.\nVeuillez photographier une feuille, tige ou fruit.";
+          erreur =
+              "Je ne détecte pas de plante sur cette image.\nVeuillez photographier une feuille, tige ou fruit.";
           isLoading = false;
         });
         return;
       }
-  
+
       // ═══ ÉTAPE 2 : Modèle maladie ═══
       Classifier classifier = Classifier();
       await classifier.charger();
       String? classePredi = await classifier.predire(widget.imageFile);
       classifier.dispose();
-  
+
       print('=== DEBUG MADOULA ===');
       print('Classe prédite : $classePredi');
-  
-      String jsonString = await rootBundle.loadString('assets/maladies_madoula.json');
+
+      String jsonString = await rootBundle.loadString(
+        'assets/maladies_madoula.json',
+      );
       Map<String, dynamic> data = jsonDecode(jsonString);
       List maladies = data['maladies'];
-  
+
       if (classePredi == null) {
         setState(() {
-          erreur = "Analyse impossible. Veuillez réessayer avec une photo plus nette.";
+          erreur =
+              "Analyse impossible. Veuillez réessayer avec une photo plus nette.";
           isLoading = false;
         });
         return;
       }
-  
+
       // Correspondance exacte avec le JSON
       Map<String, dynamic>? resultat;
       for (var m in maladies) {
@@ -89,20 +92,20 @@ class _ResultatScreenState extends State<ResultatScreen> {
           break;
         }
       }
-  
+
       if (resultat == null) {
         setState(() {
-          erreur = "Plante détectée mais maladie non répertoriée.\nEssayez avec une autre photo.";
+          erreur =
+              "Plante détectée mais maladie non répertoriée.\nEssayez avec une autre photo.";
           isLoading = false;
         });
         return;
       }
-  
+
       setState(() {
         maladie = resultat;
         isLoading = false;
       });
-  
     } catch (e) {
       setState(() {
         erreur = 'Erreur lors de l\'analyse : $e';
@@ -565,22 +568,23 @@ class _ResultatScreenState extends State<ResultatScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: couleur.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(30),
           border: Border.all(color: couleur, width: 1.5),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icone, color: couleur, size: 22),
-            SizedBox(width: 8),
+            Icon(icone, color: couleur, size: 18),
+            SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 color: couleur,
                 fontWeight: FontWeight.bold,
-                fontSize: 14,
+                fontSize: 12,
               ),
             ),
           ],
